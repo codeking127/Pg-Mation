@@ -29,7 +29,7 @@ export default function AdminDashboard() {
                 <p className="text-slate-400 text-sm mt-1">System-wide overview</p>
             </div>
 
-            <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 <StatCard label="Total Properties" value={stats?.total_pgs} icon={Building2} color="primary" />
                 <StatCard label="Owners" value={stats?.total_owners} icon={Users} color="blue" />
                 <StatCard label="Tenants" value={stats?.total_tenants} icon={Users} color="emerald" />
@@ -40,7 +40,7 @@ export default function AdminDashboard() {
 
             <div className="card">
                 <h2 className="section-title mb-4">Quick Actions</h2>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <a href="/admin/users" className="flex items-center gap-3 p-4 rounded-xl bg-slate-800 hover:bg-slate-700 transition-colors">
                         <Users className="w-5 h-5 text-primary-400" />
                         <span className="text-sm font-medium">Manage Users</span>

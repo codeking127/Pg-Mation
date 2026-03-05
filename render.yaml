@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: pg-mation-fastapi
+    env: docker
+    dockerfilePath: ./backend-python/Dockerfile
+    region: ohio # Default US region
+    branch: main
+    envVars:
+      - key: FIREBASE_SERVICE_ACCOUNT_PATH
+        value: "firebase-service-account.json" # If mounting as file via secret files
+      - key: FIREBASE_STORAGE_BUCKET
+        value: "YOUR_PROJECT_ID.appspot.com" # Update to actual project bucket

@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { authService } from '../services/api'
+import { auth } from '../firebase'
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth'
+import { userService } from '../services/api'
 
 const AuthContext = createContext(null)
 
@@ -8,27 +10,34 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        const token = localStorage.getItem('access_token')
-        if (token) {
-            authService.me()
-                .then((res) => setUser(res.data.user))
-                .catch(() => localStorage.removeItem('access_token'))
-                .finally(() => setLoading(false))
-        } else {
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            if (firebaseUser) {
+                try {
+                    // Fetch full user profile (role, etc.) from our backend
+                    const res = await userService.me()
+                    setUser(res.data)
+                } catch (error) {
+                    console.error("Failed to fetch user profile from custom backend:", error)
+                    setUser(null)
+                }
+            } else {
+                setUser(null)
+            }
             setLoading(false)
-        }
+        })
+
+        return () => unsubscribe()
     }, [])
 
     const login = useCallback(async (email, password) => {
-        const res = await authService.login({ email, password })
-        localStorage.setItem('access_token', res.data.accessToken)
-        setUser(res.data.user)
-        return res.data.user
+        // Firebase Auth login
+        const userCredential = await signInWithEmailAndPassword(auth, email, password)
+        // Profile fetch will happen in onAuthStateChanged
+        return userCredential.user
     }, [])
 
     const logout = useCallback(async () => {
-        try { await authService.logout() } catch { }
-        localStorage.removeItem('access_token')
+        await signOut(auth)
         setUser(null)
     }, [])
 

@@ -30,7 +30,7 @@ export default function SecurityDashboard() {
 
     return (
         <div className="space-y-6 animate-slide-up">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="page-title">Visitor Log</h1>
                     <p className="text-slate-400 text-sm mt-1">{active.length} active visitors</p>
@@ -43,7 +43,7 @@ export default function SecurityDashboard() {
             {showForm && (
                 <div className="card animate-slide-up">
                     <h2 className="section-title mb-4">Register Visitor</h2>
-                    <form onSubmit={handleCreate} className="grid grid-cols-2 gap-4">
+                    <form onSubmit={handleCreate} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="label">Visiting Tenant</label>
                             <select className="input" value={form.tenant_id} onChange={(e) => setForm({ ...form, tenant_id: e.target.value })} required>

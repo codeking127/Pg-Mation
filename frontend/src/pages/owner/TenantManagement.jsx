@@ -78,7 +78,7 @@ export default function TenantManagement() {
                 <div className="card animate-slide-up">
                     <h2 className="section-title mb-4">Onboard New Tenant</h2>
                     {error && <p className="text-red-400 text-sm mb-3">{error}</p>}
-                    <form onSubmit={handleCreate} className="grid grid-cols-2 gap-4">
+                    <form onSubmit={handleCreate} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div><label className="label">Full Name</label><input className="input" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required /></div>
                         <div><label className="label">Email</label><input type="email" className="input" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required /></div>
                         <div><label className="label">Phone</label><input className="input" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
@@ -208,7 +208,7 @@ export default function TenantManagement() {
                         </div>
 
                         {/* Info grid */}
-                        <div className="grid grid-cols-2 gap-3 bg-slate-900 rounded-xl p-4 border border-slate-800 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-900 rounded-xl p-4 border border-slate-800 text-sm">
                             {[
                                 ['PG', viewTenant.pg_name],
                                 ['Room · Bed', viewTenant.room_number ? `${viewTenant.room_number} · ${viewTenant.bed_number}` : '—'],

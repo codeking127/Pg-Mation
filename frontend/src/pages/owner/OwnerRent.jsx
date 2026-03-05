@@ -51,7 +51,7 @@ export default function OwnerRent() {
             {showForm && (
                 <div className="card animate-slide-up">
                     <h2 className="section-title mb-4">Create Invoice</h2>
-                    <form onSubmit={handleCreate} className="grid grid-cols-2 gap-4">
+                    <form onSubmit={handleCreate} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="label">Tenant</label>
                             <select className="input" value={form.tenant_id} onChange={(e) => {

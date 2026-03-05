@@ -25,7 +25,7 @@ export default function TenantComplaints() {
 
     return (
         <div className="space-y-6 animate-slide-up">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div><h1 className="page-title">My Complaints</h1><p className="text-slate-400 text-sm mt-1">{complaints.length} complaints</p></div>
                 <button id="new-complaint-btn" onClick={() => setShowForm(!showForm)} className="btn-primary flex items-center gap-2">
                     <Plus className="w-4 h-4" /> New Complaint

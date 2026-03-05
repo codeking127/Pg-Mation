@@ -1,0 +1,72 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from typing import List, Optional
+from core.firebase_setup import db, auth_client
+from core.security import get_current_user
+from schemas.tenant import TenantCreate, TenantResponse
+from datetime import datetime
+from google.cloud.firestore_v1.base_query import FieldFilter
+
+router = APIRouter(prefix="/tenants", tags=["Tenants"])
+
+@router.post("/", response_model=TenantResponse)
+def onboard_tenant(tenant: TenantCreate, current_user: dict = Depends(get_current_user)):
+    user_doc = db.collection("users").document(current_user.get("uid")).get()
+    role = user_doc.to_dict().get("role") if user_doc.exists else None
+
+    if role not in ["ADMIN", "OWNER"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    # In a full Firebase implementation, you might want to create the Auth user here using Firebase Admin SDK
+    # if the tenant doesn't already have an account.
+    user_id = "temp_" + str(datetime.utcnow().timestamp()) # Placeholder until Firebase Auth hookup
+
+    if auth_client:
+        try:
+            new_user = auth_client.create_user(
+                email=tenant.email,
+                password=tenant.password,
+                display_name=tenant.name
+            )
+            user_id = new_user.uid
+            
+            # Create user doc
+            db.collection("users").document(new_user.uid).set({
+                "name": tenant.name,
+                "email": tenant.email,
+                "role": "TENANT",
+                "phone": tenant.phone,
+                "created_at": datetime.utcnow()
+            })
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+    tenant_data = tenant.model_dump(exclude={"password"})
+    tenant_data["user_id"] = user_id
+    tenant_data["created_at"] = datetime.utcnow()
+    # Handle dates for Firestore
+    tenant_data["joining_date"] = datetime.combine(tenant.joining_date, datetime.min.time())
+    
+    doc_ref = db.collection("tenants").document(user_id) # Ensure 1-to-1 tenant mapping using uid
+    doc_ref.set(tenant_data)
+    
+    tenant_data["id"] = doc_ref.id
+    return tenant_data
+
+@router.get("/", response_model=List[TenantResponse])
+def get_tenants(pg_id: Optional[str] = None):
+    query = db.collection("tenants")
+    if pg_id:
+        query = query.where(filter=FieldFilter("pg_id", "==", pg_id))
+        
+    tenants = []
+    for doc in query.stream():
+        data = doc.to_dict()
+        data["id"] = doc.id
+        
+        # Hydrate PG Name
+        pg_doc = db.collection("pgs").document(data.get("pg_id")).get()
+        if pg_doc.exists:
+            data["pg_name"] = pg_doc.to_dict().get("name")
+            
+        tenants.append(data)
+    return tenants

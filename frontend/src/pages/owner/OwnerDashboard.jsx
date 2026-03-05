@@ -129,7 +129,7 @@ export default function OwnerDashboard() {
                 </div>
             )}
 
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                 <StatCard label="Properties" value={pgs.length} icon={Building2} color="primary" />
                 <StatCard label="Tenants" value={tenants.length} icon={Users} color="emerald" />
                 <StatCard label="Open Complaints" value={complaints.length} icon={MessageSquare} color="red" />

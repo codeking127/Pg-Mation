@@ -130,7 +130,7 @@ export default function TenantDashboard() {
             </div>
 
             {/* Stat Cards */}
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                 <StatCard label="My PG" value={profile?.pg_name} icon={Home} color="primary" />
                 <StatCard label="Room & Bed" value={profile?.room_number ? `${profile.room_number} · ${profile.bed_number}` : '—'} icon={BedDouble} color="blue" />
                 <StatCard label="Rent Due" value={`₹${totalDue.toLocaleString()}`} icon={DollarSign} color={totalDue > 0 ? 'red' : 'emerald'} />

@@ -59,7 +59,7 @@ export default function Login() {
                 </div>
 
                 {/* Card */}
-                <div className="glass-card p-8">
+                <div className="glass-card p-6 md:p-8">
                     {pendingMessage ? (
                         <div className="text-center animate-slide-up space-y-4">
                             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 mb-2">

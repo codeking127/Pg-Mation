@@ -25,12 +25,12 @@ export default function OwnerComplaints() {
 
     return (
         <div className="space-y-6 animate-slide-up">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="page-title">Complaints</h1>
                     <p className="text-slate-400 text-sm mt-1">{complaints.length} records</p>
                 </div>
-                <select className="input w-44" value={filter} onChange={(e) => setFilter(e.target.value)}>
+                <select className="input sm:w-44" value={filter} onChange={(e) => setFilter(e.target.value)}>
                     <option value="">All Status</option>
                     {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>

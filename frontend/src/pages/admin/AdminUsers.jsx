@@ -97,7 +97,7 @@ export default function AdminUsers() {
                 <div className="card animate-slide-up">
                     <h2 className="section-title mb-4">Create New User</h2>
                     {error && <p className="text-red-400 text-sm mb-3">{error}</p>}
-                    <form onSubmit={handleCreate} className="grid grid-cols-2 gap-4">
+                    <form onSubmit={handleCreate} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div><label className="label">Full Name</label><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></div>
                         <div><label className="label">Email</label><input type="email" className="input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></div>
                         <div><label className="label">Password</label><input className="input" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required /></div>

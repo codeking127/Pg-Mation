@@ -59,11 +59,11 @@ export default function RoomManagement() {
             {showForm && (
                 <div className="card animate-slide-up">
                     <h2 className="section-title mb-4">New Room</h2>
-                    <form onSubmit={handleCreate} className="grid grid-cols-3 gap-4">
+                    <form onSubmit={handleCreate} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                         <div><label className="label">Room Number</label><input className="input" value={form.room_number} onChange={(e) => setForm({ ...form, room_number: e.target.value })} required /></div>
                         <div><label className="label">Floor</label><input type="number" min="1" className="input" value={form.floor} onChange={(e) => setForm({ ...form, floor: e.target.value })} /></div>
                         <div><label className="label">Number of Beds</label><input type="number" min="1" max="20" className="input" value={form.total_beds} onChange={(e) => setForm({ ...form, total_beds: e.target.value })} /></div>
-                        <div className="col-span-3 flex gap-2">
+                        <div className="col-span-1 sm:col-span-2 md:col-span-3 flex gap-2">
                             <button type="submit" id="create-room-submit" disabled={submitting} className="btn-primary flex-1">{submitting ? 'Adding...' : 'Add Room'}</button>
                             <button type="button" onClick={() => setShowForm(false)} className="btn-secondary flex-1">Cancel</button>
                         </div>

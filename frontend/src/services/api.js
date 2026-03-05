@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { auth } from '../firebase'
 
 const api = axios.create({
     baseURL: '/api',
@@ -6,56 +7,28 @@ const api = axios.create({
     headers: { 'Content-Type': 'application/json' },
 })
 
-// ── Request Interceptor: attach token from localStorage ───────────────────────
-api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('access_token')
-    if (token) config.headers.Authorization = `Bearer ${token}`
+// ── Request Interceptor: attach Firebase ID Token ───────────────────────
+api.interceptors.request.use(async (config) => {
+    // Check if Firebase user is logged in
+    const user = auth.currentUser
+    if (user) {
+        // getIdToken() automatically handles refreshing the token if expired
+        const token = await user.getIdToken()
+        config.headers.Authorization = `Bearer ${token}`
+    }
     return config
+}, (error) => {
+    return Promise.reject(error)
 })
 
-// ── Response Interceptor: auto-refresh on 401 TOKEN_EXPIRED ──────────────────
-let isRefreshing = false
-let pendingQueue = []
-
-function processQueue(err, token = null) {
-    pendingQueue.forEach(({ resolve, reject }) => (err ? reject(err) : resolve(token)))
-    pendingQueue = []
-}
-
+// ── Response Interceptor: Basic error handling ──────────────────────────
 api.interceptors.response.use(
     (res) => res,
     async (err) => {
-        const original = err.config
-        if (
-            err.response?.status === 401 &&
-            err.response?.data?.code === 'TOKEN_EXPIRED' &&
-            !original._retry
-        ) {
-            if (isRefreshing) {
-                return new Promise((resolve, reject) => {
-                    pendingQueue.push({
-                        resolve: (token) => { original.headers.Authorization = `Bearer ${token}`; resolve(api(original)) },
-                        reject,
-                    })
-                })
-            }
-            original._retry = true
-            isRefreshing = true
-            try {
-                const res = await api.post('/auth/refresh')
-                const { accessToken } = res.data
-                localStorage.setItem('access_token', accessToken)
-                api.defaults.headers.Authorization = `Bearer ${accessToken}`
-                processQueue(null, accessToken)
-                return api(original)
-            } catch (refreshErr) {
-                processQueue(refreshErr, null)
-                localStorage.removeItem('access_token')
-                window.location.href = '/login'
-                return Promise.reject(refreshErr)
-            } finally {
-                isRefreshing = false
-            }
+        if (err.response?.status === 401) {
+            // If API still rejects 401 after Firebase refreshed token, we force a logout
+            // You can optionally call auth.signOut() here
+            window.location.href = '/login'
         }
         return Promise.reject(err)
     }
@@ -65,12 +38,11 @@ export default api
 
 // ── Resource services ─────────────────────────────────────────────────────────
 export const authService = {
-    login: (data) => api.post('/auth/login', data),
-    logout: () => api.post('/auth/logout'),
-    me: () => api.get('/auth/me'),
+    // Login and Logout are handled by Firebase directly now in AuthContext, these are just placeholders if needed
 }
 
 export const userService = {
+    me: () => api.get('/users/me'),
     getAll: (params) => api.get('/users', { params }),
     create: (data) => api.post('/users', data),
     update: (id, data) => api.put(`/users/${id}`, data),
