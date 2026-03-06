@@ -1,8 +1,14 @@
 import axios from 'axios'
 import { auth } from '../firebase'
 
+let customBaseURL = import.meta.env.VITE_API_BASE_URL || '/api';
+if (customBaseURL && !customBaseURL.endsWith('/api')) {
+    // Gracefully handle if user sets the host in Vercel without the /api suffix
+    customBaseURL = `${customBaseURL.replace(/\/$/, '')}/api`;
+}
+
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+    baseURL: customBaseURL,
     withCredentials: true,
     headers: { 'Content-Type': 'application/json' },
 })
