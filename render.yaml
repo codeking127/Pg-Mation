@@ -2,8 +2,7 @@ services:
   - type: web
     name: pg-mation-fastapi
     env: docker
-    dockerContext: ./backend-python
-    dockerfilePath: ./backend-python/Dockerfile
+    rootDir: backend-python
     region: ohio # Default US region
     branch: main
     envVars:
