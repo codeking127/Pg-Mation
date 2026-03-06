@@ -17,18 +17,14 @@ def apply_pg(app_in: ApplicationCreate, current_user: dict = Depends(get_current
         raise HTTPException(status_code=404, detail="PG not found")
 
     user_doc = db.collection("users").document(user_uid).get()
-    user_data = user_doc.to_dict() if user_doc.exists else {}
     
     app_data = app_in.model_dump()
     app_data["tenant_id"] = user_uid
-    app_data["tenant_name"] = user_data.get("name")
-    app_data["tenant_email"] = user_data.get("email")
-    app_data["tenant_phone"] = user_data.get("phone")
+    app_data["tenant_name"] = user_doc.to_dict().get("name") if user_doc.exists else None
     app_data["pg_name"] = pg_doc.to_dict().get("name")
     app_data["owner_id"] = pg_doc.to_dict().get("owner_id")
     app_data["status"] = "PENDING"
-    from datetime import timezone
-    app_data["created_at"] = datetime.now(timezone.utc)
+    app_data["created_at"] = datetime.utcnow()
 
     doc_ref = db.collection("applications").document()
     doc_ref.set(app_data)
@@ -53,10 +49,7 @@ def get_applications(is_owner: bool = False, is_tenant: bool = False, current_us
         apps.append(data)
     
     # Sort in memory to avoid requiring complex Firestore composite indexes
-    # Using a safe lambda that handles None and timezone awareness
-    from datetime import timezone
-    utc_min = datetime.min.replace(tzinfo=timezone.utc)
-    apps.sort(key=lambda x: x.get("created_at") or utc_min, reverse=True)
+    apps.sort(key=lambda x: x.get("created_at", datetime.min), reverse=True)
     
     return {"applications": apps}
 

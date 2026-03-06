@@ -17,9 +17,8 @@ def create_pg(pg: PGCreate, current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Not authorized to create PGs")
 
     pg_data = pg.model_dump()
-    from datetime import timezone
-    pg_data["created_at"] = datetime.now(timezone.utc)
-    pg_data["updated_at"] = datetime.now(timezone.utc)
+    pg_data["created_at"] = datetime.utcnow()
+    pg_data["updated_at"] = datetime.utcnow()
     pg_data["total_beds"] = 0
     pg_data["occupied_beds"] = 0
     pg_data["available_beds"] = 0

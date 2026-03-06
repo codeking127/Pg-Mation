@@ -14,9 +14,8 @@ def create_complaint(complaint: ComplaintCreate, current_user: dict = Depends(ge
     comp_data = complaint.model_dump()
     comp_data["tenant_id"] = user_uid
     comp_data["status"] = "OPEN"
-    from datetime import timezone
-    comp_data["created_at"] = datetime.now(timezone.utc)
-    comp_data["updated_at"] = datetime.now(timezone.utc)
+    comp_data["created_at"] = datetime.utcnow()
+    comp_data["updated_at"] = datetime.utcnow()
 
     doc_ref = db.collection("complaints").document()
     doc_ref.set(comp_data)

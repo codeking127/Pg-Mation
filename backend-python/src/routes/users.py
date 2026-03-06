@@ -26,9 +26,8 @@ def create_user(user: UserCreate, current_user: dict = Depends(get_current_user)
         raise HTTPException(status_code=400, detail="User already exists")
     
     user_data = user.model_dump()
-    from datetime import timezone
-    user_data["created_at"] = datetime.now(timezone.utc)
-    user_data["updated_at"] = datetime.now(timezone.utc)
+    user_data["created_at"] = datetime.utcnow()
+    user_data["updated_at"] = datetime.utcnow()
     
     doc_ref.set(user_data)
     
@@ -51,8 +50,8 @@ def get_me(current_user: dict = Depends(get_current_user)):
                 "email": firebase_user.email,
                 "phone": firebase_user.phone_number,
                 "role": "TENANT", # Default fallback
-                "created_at": datetime.now(timezone.utc),
-                "updated_at": datetime.now(timezone.utc)
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
             }
             # If it's the specific admin email, explicitly grant ADMIN role
             if firebase_user.email == "admin@pg.com":
@@ -69,7 +68,7 @@ def get_me(current_user: dict = Depends(get_current_user)):
                         "name": user_data["name"],
                         "email": user_data["email"],
                         "phone": user_data["phone"],
-                        "created_at": datetime.now(timezone.utc)
+                        "created_at": datetime.utcnow()
                     })
                     
             user_data["id"] = uid

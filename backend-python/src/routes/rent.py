@@ -15,8 +15,7 @@ def create_invoice(invoice: RentInvoiceCreate, current_user: dict = Depends(get_
         raise HTTPException(status_code=403, detail="Not authorized")
 
     inv_data = invoice.model_dump()
-    from datetime import timezone
-    inv_data["created_at"] = datetime.now(timezone.utc)
+    inv_data["created_at"] = datetime.utcnow()
     inv_data["paid"] = False
     inv_data["due_date"] = datetime.combine(invoice.due_date, datetime.min.time())
 
@@ -62,6 +61,6 @@ def mark_paid(invoice_id: str, current_user: dict = Depends(get_current_user)):
         
     doc_ref.update({
         "paid": True,
-        "paid_at": datetime.now(timezone.utc)
+        "paid_at": datetime.utcnow()
     })
     return {"message": "Invoice marked as paid"}
