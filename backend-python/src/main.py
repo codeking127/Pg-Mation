@@ -13,8 +13,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from routes import users, pgs, rooms, tenants, rent, complaints, visitors, applications, uploads
+from routes import users, pgs, rooms, tenants, rent, complaints, visitors, applications, uploads, auth
 
+app.include_router(auth.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(pgs.router, prefix="/api")
 app.include_router(rooms.router, prefix="/api")

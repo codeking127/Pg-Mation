@@ -24,10 +24,10 @@ export default function Register() {
         setLoading(true)
 
         try {
-            // Register user
+            // Register user on Python backend (creates Firebase Auth + Firestore Doc)
             await api.post('/auth/register', form)
 
-            // Log them in immediately after
+            // Log them into Firebase Auth locally
             await login(form.email, form.password)
 
             // Navigate based on role
