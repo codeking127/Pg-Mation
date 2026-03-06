@@ -35,7 +35,7 @@ def create_room(room: RoomCreate, current_user: dict = Depends(get_current_user)
 
     return room_data
 
-@router.get("/{pg_id}", response_model=List[RoomResponse])
+@router.get("/{pg_id}")
 def get_rooms(pg_id: str):
     rooms_query = db.collection("pgs").document(pg_id).collection("rooms").stream()
     rooms = []
@@ -50,7 +50,7 @@ def get_rooms(pg_id: str):
         
         rooms.append(r_data)
         
-    return rooms
+    return {"rooms": rooms}
 
 @router.post("/beds", response_model=BedResponse)
 def create_bed(bed: BedCreate, current_user: dict = Depends(get_current_user)):

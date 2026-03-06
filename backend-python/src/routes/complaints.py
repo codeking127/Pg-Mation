@@ -23,7 +23,7 @@ def create_complaint(complaint: ComplaintCreate, current_user: dict = Depends(ge
     comp_data["id"] = doc_ref.id
     return comp_data
 
-@router.get("/", response_model=List[ComplaintResponse])
+@router.get("/")
 def get_complaints():
     query = db.collection("complaints").order_by("created_at", direction="DESCENDING")
     
@@ -32,7 +32,7 @@ def get_complaints():
         data = doc.to_dict()
         data["id"] = doc.id
         comps.append(data)
-    return comps
+    return {"complaints": comps}
 
 @router.patch("/{id}/status")
 def update_status(id: str, status: str, current_user: dict = Depends(get_current_user)):

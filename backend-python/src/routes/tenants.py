@@ -52,7 +52,7 @@ def onboard_tenant(tenant: TenantCreate, current_user: dict = Depends(get_curren
     tenant_data["id"] = doc_ref.id
     return tenant_data
 
-@router.get("/", response_model=List[TenantResponse])
+@router.get("/")
 def get_tenants(pg_id: Optional[str] = None):
     query = db.collection("tenants")
     if pg_id:
@@ -69,4 +69,4 @@ def get_tenants(pg_id: Optional[str] = None):
             data["pg_name"] = pg_doc.to_dict().get("name")
             
         tenants.append(data)
-    return tenants
+    return {"tenants": tenants}

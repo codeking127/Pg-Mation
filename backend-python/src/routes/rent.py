@@ -25,7 +25,7 @@ def create_invoice(invoice: RentInvoiceCreate, current_user: dict = Depends(get_
     inv_data["id"] = doc_ref.id
     return inv_data
 
-@router.get("/invoices", response_model=List[RentInvoiceResponse])
+@router.get("/invoices")
 def get_invoices(tenant_id: Optional[str] = None):
     query = db.collection("invoices")
     if tenant_id:
@@ -37,7 +37,7 @@ def get_invoices(tenant_id: Optional[str] = None):
         data = doc.to_dict()
         data["id"] = doc.id
         invoices.append(data)
-    return invoices
+    return {"invoices": invoices}
 
 @router.patch("/invoices/{invoice_id}/pay")
 def mark_paid(invoice_id: str, current_user: dict = Depends(get_current_user)):

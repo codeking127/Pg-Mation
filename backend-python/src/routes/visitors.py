@@ -28,7 +28,7 @@ def create_visitor(visitor: VisitorCreate, current_user: dict = Depends(get_curr
     vis_data["tenant_name"] = tenant_doc.to_dict().get("name")
     return vis_data
 
-@router.get("/", response_model=List[VisitorResponse])
+@router.get("/")
 def get_visitors():
     query = db.collection("visitors").order_by("check_in", direction="DESCENDING")
     
@@ -43,7 +43,7 @@ def get_visitors():
             data["tenant_name"] = tenant_doc.to_dict().get("name")
             
         visitors.append(data)
-    return visitors
+    return {"visitors": visitors}
 
 @router.patch("/{id}/approve")
 def approve_visitor(id: str, current_user: dict = Depends(get_current_user)):

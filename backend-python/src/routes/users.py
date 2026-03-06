@@ -67,7 +67,7 @@ def get_me(current_user: dict = Depends(get_current_user)):
     data["id"] = doc.id
     return data
 
-@router.get("/", response_model=List[UserResponse])
+@router.get("/")
 def get_users(role: Optional[str] = None, current_user: dict = Depends(get_current_user)):
     # Add admin check here
     query = db.collection("users")
@@ -80,4 +80,4 @@ def get_users(role: Optional[str] = None, current_user: dict = Depends(get_curre
         data["id"] = doc.id
         users.append(data)
         
-    return users
+    return {"users": users}

@@ -30,7 +30,7 @@ def create_pg(pg: PGCreate, current_user: dict = Depends(get_current_user)):
     pg_data["owner_name"] = user_doc.to_dict().get("name")
     return pg_data
 
-@router.get("/", response_model=List[PGResponse])
+@router.get("/")
 def get_pgs(owner_id: Optional[str] = None):
     query = db.collection("pgs")
     if owner_id:
@@ -47,7 +47,7 @@ def get_pgs(owner_id: Optional[str] = None):
             data["owner_name"] = owner_doc.to_dict().get("name")
             
         pgs.append(data)
-    return pgs
+    return {"pgs": pgs}
 
 @router.delete("/{pg_id}")
 def delete_pg(pg_id: str, current_user: dict = Depends(get_current_user)):

@@ -32,7 +32,7 @@ def apply_pg(app_in: ApplicationCreate, current_user: dict = Depends(get_current
     app_data["id"] = doc_ref.id
     return app_data
 
-@router.get("/", response_model=List[ApplicationResponse])
+@router.get("/")
 def get_applications(owner_id: Optional[str] = None, tenant_id: Optional[str] = None):
     query = db.collection("applications").order_by("created_at", direction="DESCENDING")
     
@@ -46,7 +46,7 @@ def get_applications(owner_id: Optional[str] = None, tenant_id: Optional[str] = 
         data = doc.to_dict()
         data["id"] = doc.id
         apps.append(data)
-    return apps
+    return {"applications": apps}
 
 @router.patch("/{id}/status")
 def update_application_status(id: str, status: str, current_user: dict = Depends(get_current_user)):
