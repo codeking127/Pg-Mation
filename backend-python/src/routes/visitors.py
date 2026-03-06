@@ -7,7 +7,7 @@ from datetime import datetime
 
 router = APIRouter(prefix="/visitors", tags=["Visitors"])
 
-@router.post("/", response_model=VisitorResponse)
+@router.post("", response_model=VisitorResponse)
 def create_visitor(visitor: VisitorCreate, current_user: dict = Depends(get_current_user)):
     user_doc = db.collection("users").document(current_user.get("uid")).get()
     
@@ -28,7 +28,7 @@ def create_visitor(visitor: VisitorCreate, current_user: dict = Depends(get_curr
     vis_data["tenant_name"] = tenant_doc.to_dict().get("name")
     return vis_data
 
-@router.get("/")
+@router.get("")
 def get_visitors():
     query = db.collection("visitors").order_by("check_in", direction="DESCENDING")
     

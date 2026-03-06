@@ -8,7 +8,7 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 
 router = APIRouter(prefix="/tenants", tags=["Tenants"])
 
-@router.post("/", response_model=TenantResponse)
+@router.post("", response_model=TenantResponse)
 def onboard_tenant(tenant: TenantCreate, current_user: dict = Depends(get_current_user)):
     user_doc = db.collection("users").document(current_user.get("uid")).get()
     role = user_doc.to_dict().get("role") if user_doc.exists else None
@@ -52,7 +52,7 @@ def onboard_tenant(tenant: TenantCreate, current_user: dict = Depends(get_curren
     tenant_data["id"] = doc_ref.id
     return tenant_data
 
-@router.get("/")
+@router.get("")
 def get_tenants(pg_id: Optional[str] = None):
     query = db.collection("tenants")
     if pg_id:

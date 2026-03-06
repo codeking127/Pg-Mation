@@ -7,7 +7,7 @@ from datetime import datetime
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
-@router.post("/", response_model=UserResponse)
+@router.post("", response_model=UserResponse)
 def create_user(user: UserCreate, current_user: dict = Depends(get_current_user)):
     """
     Creates a new user document in Firestore.
@@ -80,7 +80,7 @@ def get_me(current_user: dict = Depends(get_current_user)):
     data["id"] = doc.id
     return data
 
-@router.get("/")
+@router.get("")
 def get_users(role: Optional[str] = None, current_user: dict = Depends(get_current_user)):
     # Add admin check here
     query = db.collection("users")

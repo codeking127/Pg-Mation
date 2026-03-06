@@ -8,7 +8,7 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 
 router = APIRouter(prefix="/applications", tags=["Applications"])
 
-@router.post("/", response_model=ApplicationResponse)
+@router.post("", response_model=ApplicationResponse)
 def apply_pg(app_in: ApplicationCreate, current_user: dict = Depends(get_current_user)):
     user_uid = current_user.get("uid")
 

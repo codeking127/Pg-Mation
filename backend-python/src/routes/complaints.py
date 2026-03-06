@@ -7,7 +7,7 @@ from datetime import datetime
 
 router = APIRouter(prefix="/complaints", tags=["Complaints"])
 
-@router.post("/", response_model=ComplaintResponse)
+@router.post("", response_model=ComplaintResponse)
 def create_complaint(complaint: ComplaintCreate, current_user: dict = Depends(get_current_user)):
     user_uid = current_user.get("uid")
     
@@ -23,7 +23,7 @@ def create_complaint(complaint: ComplaintCreate, current_user: dict = Depends(ge
     comp_data["id"] = doc_ref.id
     return comp_data
 
-@router.get("/")
+@router.get("")
 def get_complaints():
     query = db.collection("complaints").order_by("created_at", direction="DESCENDING")
     

@@ -8,7 +8,7 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 
 router = APIRouter(prefix="/pgs", tags=["Properties"])
 
-@router.post("/", response_model=PGResponse)
+@router.post("", response_model=PGResponse)
 def create_pg(pg: PGCreate, current_user: dict = Depends(get_current_user)):
     user_ref = db.collection("users").document(current_user.get("uid"))
     user_doc = user_ref.get()
@@ -30,7 +30,7 @@ def create_pg(pg: PGCreate, current_user: dict = Depends(get_current_user)):
     pg_data["owner_name"] = user_doc.to_dict().get("name")
     return pg_data
 
-@router.get("/")
+@router.get("")
 def get_pgs(owner_id: Optional[str] = None):
     query = db.collection("pgs")
     if owner_id:
