@@ -4,7 +4,9 @@ from firebase_admin import credentials, firestore, auth, storage
 
 def initialize_firebase():
     # Look for the service account key in the environment or a local file
-    cred_path = os.getenv('FIREBASE_SERVICE_ACCOUNT_PATH', 'firebase-service-account.json')
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    default_cred_path = os.path.join(base_dir, 'firebase-service-account.json')
+    cred_path = os.getenv('FIREBASE_SERVICE_ACCOUNT_PATH', default_cred_path)
     
     try:
         if not firebase_admin._apps:
