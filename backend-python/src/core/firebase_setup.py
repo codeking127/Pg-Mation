@@ -6,6 +6,12 @@ def initialize_firebase():
     # Look for the service account key in the environment or a local file
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     default_cred_path = os.path.join(base_dir, 'firebase-service-account.json')
+    
+    # Render Secret Files mount path fallback
+    render_secret_path = '/etc/secrets/firebase-service-account.json'
+    if os.path.exists(render_secret_path):
+        default_cred_path = render_secret_path
+        
     cred_path = os.getenv('FIREBASE_SERVICE_ACCOUNT_PATH', default_cred_path)
     
     try:
