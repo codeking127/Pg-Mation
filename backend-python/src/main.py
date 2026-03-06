@@ -7,7 +7,11 @@ app = FastAPI(title="PG-Mation API", version="1.0.0")
 # Set up CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, replace with specific origins
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "https://pg-mation-six.vercel.app"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
