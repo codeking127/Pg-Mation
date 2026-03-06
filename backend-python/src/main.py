@@ -17,7 +17,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from routes import users, pgs, rooms, tenants, rent, complaints, visitors, applications, uploads, auth
+from routes import users, pgs, rooms, tenants, rent, complaints, visitors, applications, uploads, auth, notifications
 
 app.include_router(auth.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
@@ -29,6 +29,7 @@ app.include_router(complaints.router, prefix="/api")
 app.include_router(visitors.router, prefix="/api")
 app.include_router(applications.router, prefix="/api")
 app.include_router(uploads.router, prefix="/api")
+app.include_router(notifications.router, prefix="/api")
 
 @app.get("/")
 def read_root():

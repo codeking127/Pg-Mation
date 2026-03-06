@@ -58,3 +58,20 @@ def create_bed(bed: BedCreate, current_user: dict = Depends(get_current_user)):
     # Since room is a subcollection of PG, we need the PG ID or search group collection.
     # In Firestore, it's easier if bed payload includes pg_id, or we do a collection group query.
     pass # Implementation requires either querying rooms across all PGs or passing pg_id.
+
+@router.get("/{pg_id}/available-beds")
+def get_available_beds(pg_id: str):
+    rooms_query = db.collection("pgs").document(pg_id).collection("rooms").stream()
+    beds = []
+    
+    for r_doc in rooms_query:
+        room_data = r_doc.to_dict()
+        beds_query = r_doc.reference.collection("beds").where("status", "==", "AVAILABLE").stream()
+        
+        for b_doc in beds_query:
+            b_data = b_doc.to_dict()
+            b_data["id"] = b_doc.id
+            b_data["room_number"] = room_data.get("room_number")
+            beds.append(b_data)
+            
+    return {"beds": beds}

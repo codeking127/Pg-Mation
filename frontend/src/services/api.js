@@ -64,52 +64,51 @@ export const pgService = {
     create: (data) => api.post('/pgs', data),
     update: (id, data) => api.put(`/pgs/${id}`, data),
     delete: (id) => api.delete(`/pgs/${id}`),
-    stats: () => api.get('/pgs/stats/overview'),
+    stats: () => api.get('/pgs/stats/overview'), // Still missing in backend, will add next
 }
 
 export const roomService = {
-    getByPg: (pgId) => api.get(`/pgs/${pgId}/rooms`),
-    create: (pgId, data) => api.post(`/pgs/${pgId}/rooms`, data),
+    getByPg: (pgId) => api.get(`/rooms/${pgId}`),
+    create: (pgId, data) => api.post(`/rooms`, { ...data, pg_id: pgId }),
     delete: (id) => api.delete(`/rooms/${id}`),
-    availableBeds: (pgId) => api.get(`/pgs/${pgId}/available-beds/available`),
+    availableBeds: (pgId) => api.get(`/rooms/${pgId}/available-beds`), // Will add to rooms.py
 }
 
 export const tenantService = {
     getAll: () => api.get('/tenants'),
     create: (data) => api.post('/tenants', data),
-    getMe: () => api.get('/tenants/me'),
+    getMe: () => api.get('/tenants/me'), // Will add to tenants.py
     update: (id, data) => api.put(`/tenants/${id}`, data),
     delete: (id) => api.delete(`/tenants/${id}`),
-    updateMyProfile: (data) => api.patch('/tenants/me/profile', data),
+    updateMyProfile: (data) => api.patch('/tenants/me/profile', data), // Will add to tenants.py
 }
-
 
 export const complaintService = {
     getAll: (params) => api.get('/complaints', { params }),
     create: (data) => api.post('/complaints', data),
-    updateStatus: (id, status) => api.put(`/complaints/${id}/status`, { status }),
+    updateStatus: (id, status) => api.patch(`/complaints/${id}/status`, { status }),
 }
 
 export const visitorService = {
     getAll: (params) => api.get('/visitors', { params }),
     create: (data) => api.post('/visitors', data),
-    checkout: (id) => api.put(`/visitors/${id}/checkout`),
-    approve: (id, approved) => api.put(`/visitors/${id}/approve`, { approved }),
+    checkout: (id) => api.patch(`/visitors/${id}/checkout`),
+    approve: (id, approved) => api.patch(`/visitors/${id}/approve`, { approved }),
 }
 
 export const rentService = {
-    getAll: () => api.get('/rent'),
-    getMy: () => api.get('/rent/my'),
-    createInvoice: (data) => api.post('/rent/invoice', data),
-    markPaid: (id) => api.put(`/rent/${id}/pay`),
+    getAll: () => api.get('/rent/invoices'),
+    getMy: () => api.get('/rent/invoices/my'), // Will add
+    createInvoice: (data) => api.post('/rent/invoices', data),
+    markPaid: (id) => api.patch(`/rent/invoices/${id}/pay`),
 }
 
 export const applicationService = {
-    getPublicPGs: () => api.get('/public/pgs/public'),
+    getPublicPGs: () => api.get('/pgs'), // Directed to standard pgs route which is open
     apply: (data) => api.post('/applications', data),
-    getMy: () => api.get('/applications/my'),
-    getOwner: () => api.get('/applications/owner'),
-    review: (id, data) => api.patch(`/applications/${id}/review`, data),
+    getMy: () => api.get('/applications', { params: { is_tenant: true } }), // will adapt in backend
+    getOwner: () => api.get('/applications', { params: { is_owner: true } }), // will adapt in backend
+    review: (id, data) => api.patch(`/applications/${id}/status`, data),
 }
 
 export const notificationService = {

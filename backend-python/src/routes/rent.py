@@ -39,6 +39,18 @@ def get_invoices(tenant_id: Optional[str] = None):
         invoices.append(data)
     return {"invoices": invoices}
 
+@router.get("/invoices/my")
+def get_my_invoices(current_user: dict = Depends(get_current_user)):
+    from google.cloud.firestore_v1.base_query import FieldFilter
+    query = db.collection("invoices").where(filter=FieldFilter("tenant_id", "==", current_user.get("uid")))
+    
+    invoices = []
+    for doc in query.stream():
+        data = doc.to_dict()
+        data["id"] = doc.id
+        invoices.append(data)
+    return {"invoices": invoices}
+
 @router.patch("/invoices/{invoice_id}/pay")
 def mark_paid(invoice_id: str, current_user: dict = Depends(get_current_user)):
     doc_ref = db.collection("invoices").document(invoice_id)

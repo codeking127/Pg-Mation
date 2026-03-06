@@ -70,3 +70,39 @@ def get_tenants(pg_id: Optional[str] = None):
             
         tenants.append(data)
     return {"tenants": tenants}
+
+@router.get("/me")
+def get_my_tenant_profile(current_user: dict = Depends(get_current_user)):
+    doc = db.collection("tenants").document(current_user.get("uid")).get()
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="Tenant profile not found")
+        
+    data = doc.to_dict()
+    data["id"] = doc.id
+    
+    pg_doc = db.collection("pgs").document(data.get("pg_id", "")).get()
+    if pg_doc.exists:
+        data["pg_name"] = pg_doc.to_dict().get("name")
+        
+    return {"tenant": data}
+
+@router.patch("/me/profile")
+def update_my_tenant_profile(update_data: dict, current_user: dict = Depends(get_current_user)):
+    doc_ref = db.collection("tenants").document(current_user.get("uid"))
+    if not doc_ref.get().exists:
+        raise HTTPException(status_code=404, detail="Tenant profile not found")
+        
+    # Filter safe fields
+    safe_data = {k: v for k, v in update_data.items() if k in ["phone", "aadhar_number", "profile_photo", "aadhar_photo"]}
+    if safe_data:
+        safe_data["updated_at"] = datetime.utcnow()
+        doc_ref.update(safe_data)
+        
+        # update users collection for phone/photo consistency
+        user_ref = db.collection("users").document(current_user.get("uid"))
+        if user_ref.get().exists:
+            user_safe = {k: v for k, v in safe_data.items() if k in ["phone", "profile_photo"]}
+            if user_safe:
+                user_ref.update(user_safe)
+                
+    return {"message": "Profile updated successfully"}
