@@ -40,7 +40,28 @@ def get_me(current_user: dict = Depends(get_current_user)):
     doc = db.collection("users").document(uid).get()
     
     if not doc.exists:
-        raise HTTPException(status_code=404, detail="User not found")
+        # If the user exists in Firebase Auth but has no Firestore document (e.g., from old console tools),
+        # automatically create one for them here so they can log in.
+        try:
+            from core.firebase_setup import auth_client
+            firebase_user = auth_client.get_user(uid)
+            user_data = {
+                "name": firebase_user.display_name or "Unknown User",
+                "email": firebase_user.email,
+                "phone": firebase_user.phone_number,
+                "role": "TENANT", # Default fallback
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+            # If it's the specific admin email, explicitly grant ADMIN role
+            if firebase_user.email == "admin@pg.com":
+                 user_data["role"] = "ADMIN"
+                 
+            db.collection("users").document(uid).set(user_data)
+            user_data["id"] = uid
+            return user_data
+        except Exception as e:
+            raise HTTPException(status_code=404, detail="User not found and could not be auto-created")
         
     data = doc.to_dict()
     data["id"] = doc.id
