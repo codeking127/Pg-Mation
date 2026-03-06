@@ -16,10 +16,11 @@ def create_visitor(visitor: VisitorCreate, current_user: dict = Depends(get_curr
         raise HTTPException(status_code=404, detail="Tenant not found")
 
     vis_data = visitor.model_dump()
-    vis_data["check_in"] = datetime.utcnow()
+    from datetime import timezone
+    vis_data["check_in"] = datetime.now(timezone.utc)
     vis_data["approved"] = False
     vis_data["check_out"] = None
-    vis_data["created_at"] = datetime.utcnow()
+    vis_data["created_at"] = datetime.now(timezone.utc)
 
     doc_ref = db.collection("visitors").document()
     doc_ref.set(vis_data)

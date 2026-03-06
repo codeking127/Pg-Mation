@@ -18,7 +18,8 @@ def onboard_tenant(tenant: TenantCreate, current_user: dict = Depends(get_curren
 
     # In a full Firebase implementation, you might want to create the Auth user here using Firebase Admin SDK
     # if the tenant doesn't already have an account.
-    user_id = "temp_" + str(datetime.utcnow().timestamp()) # Placeholder until Firebase Auth hookup
+    from datetime import timezone
+    user_id = "temp_" + str(datetime.now(timezone.utc).timestamp()) # Placeholder until Firebase Auth hookup
 
     if auth_client:
         try:
@@ -35,14 +36,14 @@ def onboard_tenant(tenant: TenantCreate, current_user: dict = Depends(get_curren
                 "email": tenant.email,
                 "role": "TENANT",
                 "phone": tenant.phone,
-                "created_at": datetime.utcnow()
+                "created_at": datetime.now(timezone.utc)
             })
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
 
     tenant_data = tenant.model_dump(exclude={"password"})
     tenant_data["user_id"] = user_id
-    tenant_data["created_at"] = datetime.utcnow()
+    tenant_data["created_at"] = datetime.now(timezone.utc)
     # Handle dates for Firestore
     tenant_data["joining_date"] = datetime.combine(tenant.joining_date, datetime.min.time())
     
@@ -110,7 +111,8 @@ def update_my_tenant_profile(update_data: dict, current_user: dict = Depends(get
     # Filter safe fields
     safe_data = {k: v for k, v in update_data.items() if k in ["phone", "aadhar_number", "profile_photo", "aadhar_photo"]}
     if safe_data:
-        safe_data["updated_at"] = datetime.utcnow()
+        from datetime import timezone
+        safe_data["updated_at"] = datetime.now(timezone.utc)
         doc_ref.update(safe_data)
         
         # update users collection for phone/photo consistency
