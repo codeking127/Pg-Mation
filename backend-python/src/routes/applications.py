@@ -32,7 +32,7 @@ def apply_pg(app_in: ApplicationCreate, current_user: dict = Depends(get_current
     app_data["id"] = doc_ref.id
     return app_data
 
-@router.get("/")
+@router.get("")
 def get_applications(is_owner: bool = False, is_tenant: bool = False, current_user: dict = Depends(get_current_user)):
     query = db.collection("applications").order_by("created_at", direction="DESCENDING")
     

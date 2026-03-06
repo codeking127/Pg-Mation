@@ -58,6 +58,19 @@ def get_me(current_user: dict = Depends(get_current_user)):
                  user_data["role"] = "ADMIN"
                  
             db.collection("users").document(uid).set(user_data)
+            
+            # Auto-scaffold a tenant profile if role is TENANT
+            if user_data["role"] == "TENANT":
+                tenant_ref = db.collection("tenants").document(uid)
+                if not tenant_ref.get().exists:
+                    tenant_ref.set({
+                        "user_id": uid,
+                        "name": user_data["name"],
+                        "email": user_data["email"],
+                        "phone": user_data["phone"],
+                        "created_at": datetime.utcnow()
+                    })
+                    
             user_data["id"] = uid
             return user_data
         except Exception as e:

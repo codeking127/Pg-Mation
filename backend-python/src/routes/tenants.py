@@ -73,9 +73,24 @@ def get_tenants(pg_id: Optional[str] = None):
 
 @router.get("/me")
 def get_my_tenant_profile(current_user: dict = Depends(get_current_user)):
-    doc = db.collection("tenants").document(current_user.get("uid")).get()
+    uid = current_user.get("uid")
+    doc = db.collection("tenants").document(uid).get()
+    
     if not doc.exists:
-        raise HTTPException(status_code=404, detail="Tenant profile not found")
+        # Fallback to users collection to give a graceful empty profile
+        user_doc = db.collection("users").document(uid).get()
+        user_data = user_doc.to_dict() if user_doc.exists else {}
+        return {
+            "tenant": {
+                "id": uid,
+                "name": user_data.get("name", "Unknown"),
+                "email": user_data.get("email", ""),
+                "phone": user_data.get("phone", ""),
+                "pg_name": "Not assigned to any PG yet",
+                "room_number": None,
+                "bed_number": None
+            }
+        }
         
     data = doc.to_dict()
     data["id"] = doc.id
