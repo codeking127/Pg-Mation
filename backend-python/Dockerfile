@@ -12,8 +12,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src/ /app/src/
 
 # Set environment variables
-ENV PYTHONUNBUFFERED=1
-
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app/src
 # Expose the port Uvicorn uses
 EXPOSE 8000
 
