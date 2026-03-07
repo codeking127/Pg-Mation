@@ -61,7 +61,12 @@ def get_rooms(pg_id: str):
         
         # Fetch beds inside the room subcollection
         beds_query = doc.reference.collection("beds").stream()
-        r_data["beds"] = [{"id": b.id, **b.to_dict()} for b in beds_query]
+        beds_data = [{"id": b.id, **b.to_dict()} for b in beds_query]
+        r_data["beds"] = beds_data
+        
+        # Dynamically calculate available beds
+        available_count = len([b for b in beds_data if b.get("status") == "AVAILABLE"])
+        r_data["available_beds"] = available_count
         
         rooms.append(r_data)
         

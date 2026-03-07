@@ -45,6 +45,36 @@ def onboard_tenant(tenant: TenantCreate, current_user: dict = Depends(get_curren
     tenant_data["created_at"] = datetime.utcnow()
     # Handle dates for Firestore
     tenant_data["joining_date"] = datetime.combine(tenant.joining_date, datetime.min.time())
+    tenant_data["status"] = "ACTIVE"
+    
+    # If a bed was assigned, mark it as occupied
+    if tenant.pg_id and tenant.bed_id:
+        room_id = None
+        # We need to find the room this bed belongs to
+        rooms_query = db.collection("pgs").document(tenant.pg_id).collection("rooms").stream()
+        for r in rooms_query:
+            b_ref = r.reference.collection("beds").document(tenant.bed_id)
+            b_doc = b_ref.get()
+            if b_doc.exists:
+                room_id = r.id
+                # Update bed
+                b_ref.update({
+                    "status": "OCCUPIED",
+                    "tenant_id": user_id
+                })
+                # Add to tenant data
+                tenant_data["room_id"] = room_id
+                tenant_data["room_number"] = r.to_dict().get("room_number")
+                tenant_data["bed_number"] = b_doc.to_dict().get("bed_number")
+                break
+                
+        # Update PG available beds count
+        pg_ref = db.collection("pgs").document(tenant.pg_id)
+        pg_data = pg_ref.get().to_dict()
+        if pg_data:
+            pg_ref.update({
+                "available_beds": max(0, pg_data.get("available_beds", 1) - 1)
+            })
     
     doc_ref = db.collection("tenants").document(user_id) # Ensure 1-to-1 tenant mapping using uid
     doc_ref.set(tenant_data)
@@ -135,22 +165,24 @@ def delete_tenant(tenant_id: str, current_user: dict = Depends(get_current_user)
     if not t_doc.exists:
         raise HTTPException(status_code=404, detail="Tenant not found")
         
+    t_data = t_doc.to_dict()
+    
     # If OWNER, verify the tenant actually belongs to their PG
     if role == "OWNER":
-        t_data = t_doc.to_dict()
         pg_doc = db.collection("pgs").document(t_data.get("pg_id", "")).get()
         if not pg_doc.exists or pg_doc.to_dict().get("owner_id") != current_user.get("uid"):
              raise HTTPException(status_code=403, detail="Tenant does not belong to your PG")
              
-        # Free up the bed
-        if t_data.get("room_id") and t_data.get("bed_id"):
-             bed_ref = db.collection("pgs").document(t_data.get("pg_id")).collection("rooms").document(t_data.get("room_id")).collection("beds").document(t_data.get("bed_id"))
-             if bed_ref.get().exists:
-                 bed_ref.update({"status": "AVAILABLE", "tenant_id": None})
-             
-             # Increase available beds count
-             pg_ref = db.collection("pgs").document(t_data.get("pg_id"))
-             p_data = pg_ref.get().to_dict()
+    # Free up the bed for both OWNER and ADMIN actions
+    if t_data.get("room_id") and t_data.get("bed_id"):
+         bed_ref = db.collection("pgs").document(t_data.get("pg_id")).collection("rooms").document(t_data.get("room_id")).collection("beds").document(t_data.get("bed_id"))
+         if bed_ref.get().exists:
+             bed_ref.update({"status": "AVAILABLE", "tenant_id": None})
+         
+         # Increase available beds count
+         pg_ref = db.collection("pgs").document(t_data.get("pg_id"))
+         p_data = pg_ref.get().to_dict()
+         if p_data:
              pg_ref.update({"available_beds": p_data.get("available_beds", 0) + 1})
 
     # Optional: Delete auth user using firebase admin sdk if we fully manage them
