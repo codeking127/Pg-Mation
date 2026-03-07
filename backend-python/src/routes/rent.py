@@ -19,6 +19,15 @@ def create_invoice(invoice: RentInvoiceCreate, current_user: dict = Depends(get_
     inv_data["paid"] = False
     inv_data["due_date"] = datetime.combine(invoice.due_date, datetime.min.time())
 
+    # Get Tenant details to denormalize for list views
+    tenant_doc = db.collection("tenants").document(invoice.tenant_id).get()
+    if tenant_doc.exists:
+        t_data = tenant_doc.to_dict()
+        inv_data["tenant_name"] = t_data.get("name")
+        pg_doc = db.collection("pgs").document(t_data.get("pg_id", "")).get()
+        if pg_doc.exists:
+            inv_data["pg_name"] = pg_doc.to_dict().get("name")
+
     doc_ref = db.collection("invoices").document()
     doc_ref.set(inv_data)
 
@@ -36,6 +45,17 @@ def get_invoices(tenant_id: Optional[str] = None):
     for doc in query.stream():
         data = doc.to_dict()
         data["id"] = doc.id
+        
+        # Hydrate dynamic if missing from old records
+        if "tenant_name" not in data:
+            t_doc = db.collection("tenants").document(data.get("tenant_id", "")).get()
+            if t_doc.exists:
+                t_data = t_doc.to_dict()
+                data["tenant_name"] = t_data.get("name")
+                p_doc = db.collection("pgs").document(t_data.get("pg_id", "")).get()
+                if p_doc.exists:
+                    data["pg_name"] = p_doc.to_dict().get("name")
+                    
         invoices.append(data)
     return {"invoices": invoices}
 
@@ -48,6 +68,17 @@ def get_my_invoices(current_user: dict = Depends(get_current_user)):
     for doc in query.stream():
         data = doc.to_dict()
         data["id"] = doc.id
+        
+        # Hydrate dynamic if missing from old records
+        if "tenant_name" not in data:
+            t_doc = db.collection("tenants").document(data.get("tenant_id", "")).get()
+            if t_doc.exists:
+                t_data = t_doc.to_dict()
+                data["tenant_name"] = t_data.get("name")
+                p_doc = db.collection("pgs").document(t_data.get("pg_id", "")).get()
+                if p_doc.exists:
+                    data["pg_name"] = p_doc.to_dict().get("name")
+                    
         invoices.append(data)
     return {"invoices": invoices}
 

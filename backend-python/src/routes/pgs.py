@@ -76,10 +76,18 @@ def get_pg_stats(current_user: dict = Depends(get_current_user)):
         if pg_ids:
             # Firestore 'in' queries support max 10 elements, but we'll do simple client side filter
             all_t = list(db.collection("tenants").stream())
-            tenants = len([t for t in all_t if t.to_dict().get("pg_id") in pg_ids])
+            owner_tenants = [t for t in all_t if t.to_dict().get("pg_id") in pg_ids]
+            tenants = len(owner_tenants)
             
-        # Same for complaints: would normally fetch all and filter by tenant's pg_id
-        open_complaints = 0 # Placeholder for owner stats simplification
+            # Count open complaints belonging to these tenants
+            owner_tenant_ids = set([t.id for t in owner_tenants])
+            if owner_tenant_ids:
+                all_c = list(db.collection("complaints").where(filter=FieldFilter("status", "in", ["OPEN", "PENDING"])).stream())
+                open_complaints = len([c for c in all_c if c.to_dict().get("tenant_id") in owner_tenant_ids])
+            else:
+                open_complaints = 0
+        else:
+            open_complaints = 0
     else:
         tenants = len(list(tenants_query.stream()))
         open_complaints = len(list(complaints_query.stream()))
