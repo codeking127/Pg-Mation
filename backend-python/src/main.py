@@ -10,8 +10,10 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://localhost:5173",
-        "https://pg-mation-six.vercel.app"
+        "https://pg-mation-six.vercel.app",
+        "https://pg-mation-8ub4a0cxj-codeking127s-projects.vercel.app"
     ],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
