@@ -2,8 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Optional
 from core.firebase_setup import db
 from core.security import get_current_user
+from pydantic import BaseModel
 from schemas.user import UserCreate, UserResponse
 from datetime import datetime
+
+class CompleteRegistrationRequest(BaseModel):
+    role: str
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -40,41 +44,7 @@ def get_me(current_user: dict = Depends(get_current_user)):
     doc = db.collection("users").document(uid).get()
     
     if not doc.exists:
-        # If the user exists in Firebase Auth but has no Firestore document (e.g., from old console tools),
-        # automatically create one for them here so they can log in.
-        try:
-            from core.firebase_setup import auth_client
-            firebase_user = auth_client.get_user(uid)
-            user_data = {
-                "name": firebase_user.display_name or "Unknown User",
-                "email": firebase_user.email,
-                "phone": firebase_user.phone_number,
-                "role": "TENANT", # Default fallback
-                "created_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow()
-            }
-            # If it's the specific admin email, explicitly grant ADMIN role
-            if firebase_user.email == "admin@pg.com":
-                 user_data["role"] = "ADMIN"
-                 
-            db.collection("users").document(uid).set(user_data)
-            
-            # Auto-scaffold a tenant profile if role is TENANT
-            if user_data["role"] == "TENANT":
-                tenant_ref = db.collection("tenants").document(uid)
-                if not tenant_ref.get().exists:
-                    tenant_ref.set({
-                        "user_id": uid,
-                        "name": user_data["name"],
-                        "email": user_data["email"],
-                        "phone": user_data["phone"],
-                        "created_at": datetime.utcnow()
-                    })
-                    
-            user_data["id"] = uid
-            return user_data
-        except Exception as e:
-            raise HTTPException(status_code=404, detail="User not found and could not be auto-created")
+        raise HTTPException(status_code=404, detail="USER_NEEDS_ROLE_REGISTRATION")
         
     data = doc.to_dict()
     data["id"] = doc.id
@@ -94,3 +64,45 @@ def get_users(role: Optional[str] = None, current_user: dict = Depends(get_curre
         users.append(data)
         
     return {"users": users}
+
+@router.post("/complete-registration", response_model=UserResponse)
+def complete_registration(req: CompleteRegistrationRequest, current_user: dict = Depends(get_current_user)):
+    uid = current_user.get("uid")
+    doc_ref = db.collection("users").document(uid)
+    
+    if doc_ref.get().exists:
+        raise HTTPException(status_code=400, detail="User is already registered")
+        
+    try:
+        from core.firebase_setup import auth_client
+        firebase_user = auth_client.get_user(uid)
+        
+        user_data = {
+            "name": firebase_user.display_name or "Unknown User",
+            "email": firebase_user.email,
+            "phone": firebase_user.phone_number,
+            "role": req.role,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        
+        # If it's the specific admin email, override the role
+        if firebase_user.email == "admin@pg.com":
+            user_data["role"] = "ADMIN"
+             
+        doc_ref.set(user_data)
+        
+        if user_data["role"] == "TENANT":
+            tenant_ref = db.collection("tenants").document(uid)
+            tenant_ref.set({
+                "user_id": uid,
+                "name": user_data["name"],
+                "email": user_data["email"],
+                "phone": user_data["phone"],
+                "created_at": datetime.utcnow()
+            })
+            
+        user_data["id"] = uid
+        return user_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to complete registration: {str(e)}")

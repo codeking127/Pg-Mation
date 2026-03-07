@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { auth } from '../firebase'
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth'
+import { auth, googleProvider } from '../firebase'
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut, signInWithPopup } from 'firebase/auth'
 import { userService } from '../services/api'
 
 const AuthContext = createContext(null)
@@ -38,13 +38,43 @@ export function AuthProvider({ children }) {
         return res.data
     }, [])
 
+    const loginWithGoogle = useCallback(async (role = null) => {
+        await signInWithPopup(auth, googleProvider)
+        try {
+            const res = await userService.me()
+            setUser(res.data)
+            return res.data
+        } catch (error) {
+            if (error.response?.status === 404 && error.response?.data?.detail === "USER_NEEDS_ROLE_REGISTRATION") {
+                if (role) {
+                    // Register page already provided a role, complete silently
+                    const regRes = await userService.completeRegistration({ role })
+                    setUser(regRes.data)
+                    return regRes.data
+                } else {
+                    // Login page doesn't know the role, throw to UI
+                    const err = new Error("USER_NEEDS_ROLE_REGISTRATION")
+                    err.needsRole = true
+                    throw err
+                }
+            }
+            throw error
+        }
+    }, [])
+
+    const completeGoogleRegistration = useCallback(async (role) => {
+        const regRes = await userService.completeRegistration({ role })
+        setUser(regRes.data)
+        return regRes.data
+    }, [])
+
     const logout = useCallback(async () => {
         await signOut(auth)
         setUser(null)
     }, [])
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout }}>
+        <AuthContext.Provider value={{ user, loading, login, logout, loginWithGoogle, completeGoogleRegistration }}>
             {children}
         </AuthContext.Provider>
     )

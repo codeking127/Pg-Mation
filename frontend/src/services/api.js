@@ -56,6 +56,7 @@ export const userService = {
     delete: (id) => api.delete(`/users/${id}`),
     uploadPhoto: (profile_photo) => api.patch('/users/me/photo', { profile_photo }),
     removePhoto: () => api.patch('/users/me/photo/remove'),
+    completeRegistration: (data) => api.post('/users/complete-registration', data),
 }
 
 
