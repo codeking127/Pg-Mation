@@ -27,6 +27,21 @@ def create_room(room: RoomCreate, current_user: dict = Depends(get_current_user)
 
     room_data["id"] = room_ref.id
     
+    # Auto-generate beds for this room
+    batch = db.batch()
+    for i in range(1, room.total_beds + 1):
+        bed_ref = room_ref.collection("beds").document()
+        bed_data = {
+            "room_id": room_ref.id,
+            "bed_number": f"B{i}",
+            "status": "AVAILABLE",
+            "tenant_id": None,
+            "created_at": datetime.utcnow()
+        }
+        batch.set(bed_ref, bed_data)
+        
+    batch.commit()
+    
     # Update PG total capacity
     db.collection("pgs").document(room.pg_id).update({
         "total_beds": pg_doc.to_dict().get("total_beds", 0) + room.total_beds,
