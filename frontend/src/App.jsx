@@ -7,6 +7,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Unauthorized from './pages/Unauthorized'
 import BrowsePGs from './pages/BrowsePGs'
+import NoPGGuard from './components/NoPGGuard'
 
 
 // Admin
@@ -67,14 +68,14 @@ export default function App() {
                     {/* Owner */}
                     <Route element={<ProtectedRoute roles={['OWNER']}><Layout /></ProtectedRoute>}>
                         <Route path="/owner" element={<OwnerDashboard />} />
-                        <Route path="/owner/rooms" element={<RoomManagement />} />
-                        <Route path="/owner/tenants" element={<TenantManagement />} />
-                        <Route path="/owner/visitors" element={<VisitorApproval />} />
-                        <Route path="/owner/complaints" element={<OwnerComplaints />} />
-                        <Route path="/owner/rent" element={<OwnerRent />} />
-                        <Route path="/owner/reports" element={<OwnerReports />} />
-                        <Route path="/owner/applications" element={<OwnerApplications />} />
-                        <Route path="/owner/notifications" element={<OwnerNotifications />} />
+                        <Route path="/owner/rooms" element={<NoPGGuard><RoomManagement /></NoPGGuard>} />
+                        <Route path="/owner/tenants" element={<NoPGGuard><TenantManagement /></NoPGGuard>} />
+                        <Route path="/owner/visitors" element={<NoPGGuard><VisitorApproval /></NoPGGuard>} />
+                        <Route path="/owner/complaints" element={<NoPGGuard><OwnerComplaints /></NoPGGuard>} />
+                        <Route path="/owner/rent" element={<NoPGGuard><OwnerRent /></NoPGGuard>} />
+                        <Route path="/owner/reports" element={<NoPGGuard><OwnerReports /></NoPGGuard>} />
+                        <Route path="/owner/applications" element={<NoPGGuard><OwnerApplications /></NoPGGuard>} />
+                        <Route path="/owner/notifications" element={<NoPGGuard><OwnerNotifications /></NoPGGuard>} />
                     </Route>
 
 
