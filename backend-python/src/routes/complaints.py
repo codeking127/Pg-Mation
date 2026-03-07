@@ -32,14 +32,38 @@ def create_complaint(complaint: ComplaintCreate, current_user: dict = Depends(ge
     return comp_data
 
 @router.get("")
-def get_complaints():
+def get_complaints(status: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    user_doc = db.collection("users").document(current_user.get("uid")).get()
+    role = user_doc.to_dict().get("role") if user_doc.exists else None
+
     query = db.collection("complaints").order_by("created_at", direction="DESCENDING")
     
+    if status:
+        from google.cloud.firestore_v1.base_query import FieldFilter
+        query = query.where(filter=FieldFilter("status", "==", status))
+        
+    owner_pg_ids = []
+    if role == "OWNER":
+        from google.cloud.firestore_v1.base_query import FieldFilter
+        owner_pgs = db.collection("pgs").where(filter=FieldFilter("owner_id", "==", current_user.get("uid"))).stream()
+        owner_pg_ids = [p.id for p in owner_pgs]
+        if not owner_pg_ids:
+            return {"complaints": []}
+            
     comps = []
     for doc in query.stream():
         data = doc.to_dict()
         data["id"] = doc.id
         
+        # Determine if this belongs to owner's PG (we need tenant's pg_id)
+        tenant_id = data.get("tenant_id")
+        t_doc = db.collection("tenants").document(tenant_id).get() if tenant_id else None
+        
+        pg_id = t_doc.to_dict().get("pg_id") if t_doc and t_doc.exists else None
+        
+        if role == "OWNER" and pg_id not in owner_pg_ids:
+            continue
+            
         # Hydrate for old records
         if "tenant_name" not in data:
             t_doc = db.collection("tenants").document(data.get("tenant_id", "")).get()

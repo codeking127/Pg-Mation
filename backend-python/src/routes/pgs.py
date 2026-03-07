@@ -31,9 +31,16 @@ def create_pg(pg: PGCreate, current_user: dict = Depends(get_current_user)):
     return pg_data
 
 @router.get("")
-def get_pgs(owner_id: Optional[str] = None):
+def get_pgs(owner_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    user_doc = db.collection("users").document(current_user.get("uid")).get()
+    role = user_doc.to_dict().get("role") if user_doc.exists else None
+
     query = db.collection("pgs")
-    if owner_id:
+    
+    # If the user is an OWNER, strictly lock them to their own PGs regardless of query params
+    if role == "OWNER":
+        query = query.where(filter=FieldFilter("owner_id", "==", current_user.get("uid")))
+    elif owner_id:
         query = query.where(filter=FieldFilter("owner_id", "==", owner_id))
         
     pgs = []

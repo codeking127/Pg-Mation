@@ -83,15 +83,42 @@ def onboard_tenant(tenant: TenantCreate, current_user: dict = Depends(get_curren
     return tenant_data
 
 @router.get("")
-def get_tenants(pg_id: Optional[str] = None):
+def get_tenants(pg_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    user_doc = db.collection("users").document(current_user.get("uid")).get()
+    role = user_doc.to_dict().get("role") if user_doc.exists else None
+
     query = db.collection("tenants")
-    if pg_id:
-        query = query.where(filter=FieldFilter("pg_id", "==", pg_id))
+    
+    if role == "OWNER":
+        # Owners can only see tenants in their own PGs
+        owner_pgs = db.collection("pgs").where(filter=FieldFilter("owner_id", "==", current_user.get("uid"))).stream()
+        owner_pg_ids = [p.id for p in owner_pgs]
+        
+        if not owner_pg_ids:
+            return {"tenants": []} # No PGs assigned = no tenants visible
+            
+        # If a specific pg_id is requested, ensure they actually own it
+        if pg_id:
+            if pg_id not in owner_pg_ids:
+                return {"tenants": []}
+            query = query.where(filter=FieldFilter("pg_id", "==", pg_id))
+        else:
+            # Client-side filtering approach if owner_pg_ids exceeds Firestore 'IN' query limit (10)
+            # Or use multiple queries. For simplicity in MVP, we fetch and filter in memory if pg_id is not passed.
+            pass # Handled below
+    else:
+        # ADMIN sees all, but can optionally filter by pg_id
+        if pg_id:
+            query = query.where(filter=FieldFilter("pg_id", "==", pg_id))
         
     tenants = []
     for doc in query.stream():
         data = doc.to_dict()
         data["id"] = doc.id
+        
+        # If OWNER and no pg_id was passed to the query, we manually filter the streamed results
+        if role == "OWNER" and not pg_id and data.get("pg_id") not in owner_pg_ids:
+            continue
         
         # Hydrate PG Name
         pg_doc = db.collection("pgs").document(data.get("pg_id")).get()

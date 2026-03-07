@@ -29,13 +29,33 @@ def create_visitor(visitor: VisitorCreate, current_user: dict = Depends(get_curr
     return vis_data
 
 @router.get("")
-def get_visitors():
+def get_visitors(current_user: dict = Depends(get_current_user)):
+    user_doc = db.collection("users").document(current_user.get("uid")).get()
+    role = user_doc.to_dict().get("role") if user_doc.exists else None
+
     query = db.collection("visitors").order_by("check_in", direction="DESCENDING")
     
+    owner_pg_ids = []
+    if role == "OWNER":
+        from google.cloud.firestore_v1.base_query import FieldFilter
+        owner_pgs = db.collection("pgs").where(filter=FieldFilter("owner_id", "==", current_user.get("uid"))).stream()
+        owner_pg_ids = [p.id for p in owner_pgs]
+        if not owner_pg_ids:
+            return {"visitors": []}
+            
     visitors = []
     for doc in query.stream():
         data = doc.to_dict()
         data["id"] = doc.id
+        
+        # Determine if this belongs to owner's PG
+        tenant_id = data.get("tenant_id")
+        t_doc = db.collection("tenants").document(tenant_id).get() if tenant_id else None
+        pg_id = t_doc.to_dict().get("pg_id") if t_doc and t_doc.exists else None
+        
+        if role == "OWNER" and pg_id not in owner_pg_ids:
+            continue
+            
         
         # hydrate tenant
         tenant_doc = db.collection("tenants").document(data.get("tenant_id")).get()
