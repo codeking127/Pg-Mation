@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Optional
 from core.firebase_setup import db
 from core.security import get_current_user
-from schemas.application import ApplicationCreate, ApplicationResponse
+from schemas.application import ApplicationCreate, ApplicationResponse, ApplicationReview
 from datetime import datetime
 from google.cloud.firestore_v1.base_query import FieldFilter
 
@@ -54,17 +54,58 @@ def get_applications(is_owner: bool = False, is_tenant: bool = False, current_us
     return {"applications": apps}
 
 @router.patch("/{id}/status")
-def update_application_status(id: str, status: str, current_user: dict = Depends(get_current_user)):
+def update_application_status(id: str, review: ApplicationReview, current_user: dict = Depends(get_current_user)):
     user_doc = db.collection("users").document(current_user.get("uid")).get()
     if user_doc.to_dict().get("role") not in ["ADMIN", "OWNER"]:
         raise HTTPException(status_code=403, detail="Not authorized")
         
     doc_ref = db.collection("applications").document(id)
-    if not doc_ref.get().exists:
+    app_doc = doc_ref.get()
+    if not app_doc.exists:
         raise HTTPException(status_code=404, detail="Application not found")
         
-    doc_ref.update({
-        "status": status, 
+    app_data = app_doc.to_dict()
+    update_data = {
+        "status": review.status, 
         "reviewed_at": datetime.utcnow()
-    })
+    }
+    
+    if review.status == "APPROVED" and review.room_id and review.bed_id:
+        pg_id = app_data.get("pg_id")
+        tenant_id = app_data.get("tenant_id")
+        
+        # 1. Update bed status to OCCUPIED
+        bed_ref = db.collection("pgs").document(pg_id).collection("rooms").document(review.room_id).collection("beds").document(review.bed_id)
+        bed_doc = bed_ref.get()
+        if bed_doc.exists:
+            bed_ref.update({
+                "status": "OCCUPIED",
+                "tenant_id": tenant_id
+            })
+            update_data["bed_number"] = bed_doc.to_dict().get("bed_number")
+            
+        # 2. Update PG available beds count
+        pg_ref = db.collection("pgs").document(pg_id)
+        pg_data = pg_ref.get().to_dict()
+        if pg_data:
+            pg_ref.update({
+                "available_beds": max(0, pg_data.get("available_beds", 1) - 1)
+            })
+            
+        # 3. Add room number to application
+        room_doc = db.collection("pgs").document(pg_id).collection("rooms").document(review.room_id).get()
+        if room_doc.exists:
+             update_data["room_number"] = room_doc.to_dict().get("room_number")
+             
+        # 4. Update tenant profile with active PG connection
+        tenant_profile_ref = db.collection("tenants").document(tenant_id)
+        if tenant_profile_ref.get().exists:
+            tenant_profile_ref.update({
+                "pg_id": pg_id,
+                "room_id": review.room_id,
+                "bed_id": review.bed_id,
+                "status": "ACTIVE"
+            })
+            
+    doc_ref.update(update_data)
     return {"message": "Application status updated"}

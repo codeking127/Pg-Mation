@@ -9,6 +9,11 @@ class ApplicationBase(BaseModel):
 class ApplicationCreate(ApplicationBase):
     pass
 
+class ApplicationReview(BaseModel):
+    status: str
+    room_id: Optional[str] = None
+    bed_id: Optional[str] = None
+
 class ApplicationResponse(ApplicationBase):
     id: str
     tenant_id: str
