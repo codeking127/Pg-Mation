@@ -4,6 +4,10 @@ from core.firebase_setup import db
 from core.security import get_current_user
 from schemas.visitor import VisitorCreate, VisitorResponse
 from datetime import datetime
+from pydantic import BaseModel
+
+class ApproveRequest(BaseModel):
+    approved: bool
 
 router = APIRouter(prefix="/visitors", tags=["Visitors"])
 
@@ -66,13 +70,14 @@ def get_visitors(current_user: dict = Depends(get_current_user)):
     return {"visitors": visitors}
 
 @router.patch("/{id}/approve")
-def approve_visitor(id: str, current_user: dict = Depends(get_current_user)):
+def approve_visitor(id: str, payload: ApproveRequest, current_user: dict = Depends(get_current_user)):
     doc_ref = db.collection("visitors").document(id)
     if not doc_ref.get().exists:
         raise HTTPException(status_code=404, detail="Visitor not found")
         
-    doc_ref.update({"approved": True})
-    return {"message": "Visitor approved"}
+    doc_ref.update({"approved": payload.approved})
+    action = "approved" if payload.approved else "rejected"
+    return {"message": f"Visitor {action}"}
 
 @router.patch("/{id}/checkout")
 def checkout_visitor(id: str, current_user: dict = Depends(get_current_user)):

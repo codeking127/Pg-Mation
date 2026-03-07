@@ -1,10 +1,21 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Optional
 from core.firebase_setup import db
-from core.security import get_current_user
+from core.security import get_current_user, get_optional_user
 from schemas.pg import PGCreate, PGResponse
 from datetime import datetime
 from google.cloud.firestore_v1.base_query import FieldFilter
+from pydantic import BaseModel
+
+class PGUpdate(BaseModel):
+    name: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    monthly_rent: Optional[float] = None
+    description: Optional[str] = None
+    amenities: Optional[list] = None
+    gender_preference: Optional[str] = None
+    photos: Optional[list] = None
 
 router = APIRouter(prefix="/pgs", tags=["Properties"])
 
@@ -31,28 +42,32 @@ def create_pg(pg: PGCreate, current_user: dict = Depends(get_current_user)):
     return pg_data
 
 @router.get("")
-def get_pgs(owner_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
-    user_doc = db.collection("users").document(current_user.get("uid")).get()
-    role = user_doc.to_dict().get("role") if user_doc.exists else None
+def get_pgs(owner_id: Optional[str] = None, current_user: Optional[dict] = Depends(get_optional_user)):
+    role = None
+    uid = None
+    if current_user:
+        uid = current_user.get("uid")
+        user_doc = db.collection("users").document(uid).get()
+        role = user_doc.to_dict().get("role") if user_doc.exists else None
 
     query = db.collection("pgs")
-    
+
     # If the user is an OWNER, strictly lock them to their own PGs regardless of query params
     if role == "OWNER":
-        query = query.where(filter=FieldFilter("owner_id", "==", current_user.get("uid")))
+        query = query.where(filter=FieldFilter("owner_id", "==", uid))
     elif owner_id:
         query = query.where(filter=FieldFilter("owner_id", "==", owner_id))
-        
+
     pgs = []
     for doc in query.stream():
         data = doc.to_dict()
         data["id"] = doc.id
-        
+
         # Optionally fetch owner name
         owner_doc = db.collection("users").document(data["owner_id"]).get()
         if owner_doc.exists:
             data["owner_name"] = owner_doc.to_dict().get("name")
-            
+
         pgs.append(data)
     return {"pgs": pgs}
 
@@ -111,6 +126,28 @@ def get_pg_stats(current_user: dict = Depends(get_current_user)):
             "open_complaints": open_complaints
         }
     }
+
+@router.put("/{pg_id}")
+def update_pg(pg_id: str, payload: PGUpdate, current_user: dict = Depends(get_current_user)):
+    doc_ref = db.collection("pgs").document(pg_id)
+    doc = doc_ref.get()
+
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="PG not found")
+
+    user_doc = db.collection("users").document(current_user.get("uid")).get()
+    role = user_doc.to_dict().get("role")
+
+    if role != "ADMIN" and doc.to_dict().get("owner_id") != current_user.get("uid"):
+        raise HTTPException(status_code=403, detail="Not authorized to update this PG")
+
+    update_data = {k: v for k, v in payload.model_dump().items() if v is not None}
+    update_data["updated_at"] = datetime.utcnow()
+    doc_ref.update(update_data)
+
+    updated = doc_ref.get().to_dict()
+    updated["id"] = pg_id
+    return updated
 
 @router.delete("/{pg_id}")
 def delete_pg(pg_id: str, current_user: dict = Depends(get_current_user)):

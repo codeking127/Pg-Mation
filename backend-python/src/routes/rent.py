@@ -35,7 +35,7 @@ def create_invoice(invoice: RentInvoiceCreate, current_user: dict = Depends(get_
     return inv_data
 
 @router.get("/invoices")
-def get_invoices(tenant_id: Optional[str] = None):
+def get_invoices(tenant_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
     query = db.collection("invoices")
     if tenant_id:
         from google.cloud.firestore_v1.base_query import FieldFilter

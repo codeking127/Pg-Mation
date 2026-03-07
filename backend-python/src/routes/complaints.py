@@ -1,9 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List
+from fastapi import APIRouter, Depends, HTTPException, status, Body
+from typing import List, Optional
 from core.firebase_setup import db
 from core.security import get_current_user
 from schemas.complaint import ComplaintCreate, ComplaintResponse
 from datetime import datetime
+from pydantic import BaseModel
+
+class StatusUpdate(BaseModel):
+    status: str
 
 router = APIRouter(prefix="/complaints", tags=["Complaints"])
 
@@ -78,7 +82,7 @@ def get_complaints(status: Optional[str] = None, current_user: dict = Depends(ge
     return {"complaints": comps}
 
 @router.patch("/{id}/status")
-def update_status(id: str, status: str, current_user: dict = Depends(get_current_user)):
+def update_status(id: str, payload: StatusUpdate, current_user: dict = Depends(get_current_user)):
     user_doc = db.collection("users").document(current_user.get("uid")).get()
     if user_doc.to_dict().get("role") not in ["ADMIN", "OWNER"]:
         raise HTTPException(status_code=403, detail="Not authorized")
@@ -87,5 +91,5 @@ def update_status(id: str, status: str, current_user: dict = Depends(get_current
     if not doc_ref.get().exists:
         raise HTTPException(status_code=404, detail="Complaint not found")
         
-    doc_ref.update({"status": status, "updated_at": datetime.utcnow()})
+    doc_ref.update({"status": payload.status, "updated_at": datetime.utcnow()})
     return {"message": "Status updated"}

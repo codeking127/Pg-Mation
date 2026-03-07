@@ -12,6 +12,14 @@ class CompleteRegistrationRequest(BaseModel):
 class UserStatusUpdate(BaseModel):
     status: str
 
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    profile_photo: Optional[str] = None
+
+class PhotoUpdate(BaseModel):
+    profile_photo: str
+
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -146,3 +154,54 @@ def update_user_status(user_id: str, payload: UserStatusUpdate, current_user: di
     })
     
     return {"message": "User status updated"}
+
+@router.put("/{user_id}")
+def update_user(user_id: str, payload: UserUpdate, current_user: dict = Depends(get_current_user)):
+    caller_uid = current_user.get("uid")
+    caller_doc = db.collection("users").document(caller_uid).get()
+    caller_role = caller_doc.to_dict().get("role") if caller_doc.exists else None
+
+    # Only admins or the user themselves can update the profile
+    if caller_role != "ADMIN" and caller_uid != user_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    user_ref = db.collection("users").document(user_id)
+    if not user_ref.get().exists:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    update_data = {k: v for k, v in payload.model_dump().items() if v is not None}
+    update_data["updated_at"] = datetime.utcnow()
+    user_ref.update(update_data)
+
+    return {"message": "User updated successfully"}
+
+@router.patch("/me/photo")
+def update_my_photo(payload: PhotoUpdate, current_user: dict = Depends(get_current_user)):
+    uid = current_user.get("uid")
+    user_ref = db.collection("users").document(uid)
+    if not user_ref.get().exists:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user_ref.update({"profile_photo": payload.profile_photo, "updated_at": datetime.utcnow()})
+
+    # Keep tenant profile in sync if applicable
+    tenant_ref = db.collection("tenants").document(uid)
+    if tenant_ref.get().exists:
+        tenant_ref.update({"profile_photo": payload.profile_photo, "updated_at": datetime.utcnow()})
+
+    return {"message": "Profile photo updated"}
+
+@router.patch("/me/photo/remove")
+def remove_my_photo(current_user: dict = Depends(get_current_user)):
+    uid = current_user.get("uid")
+    user_ref = db.collection("users").document(uid)
+    if not user_ref.get().exists:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user_ref.update({"profile_photo": None, "updated_at": datetime.utcnow()})
+
+    tenant_ref = db.collection("tenants").document(uid)
+    if tenant_ref.get().exists:
+        tenant_ref.update({"profile_photo": None, "updated_at": datetime.utcnow()})
+
+    return {"message": "Profile photo removed"}

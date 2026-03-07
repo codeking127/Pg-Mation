@@ -5,6 +5,17 @@ from core.security import get_current_user
 from schemas.tenant import TenantCreate, TenantResponse
 from datetime import datetime
 from google.cloud.firestore_v1.base_query import FieldFilter
+from pydantic import BaseModel
+
+class TenantUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    pg_id: Optional[str] = None
+    room_id: Optional[str] = None
+    bed_id: Optional[str] = None
+    aadhar_number: Optional[str] = None
+    profile_photo: Optional[str] = None
+    status: Optional[str] = None
 
 router = APIRouter(prefix="/tenants", tags=["Tenants"])
 
@@ -178,6 +189,32 @@ def update_my_tenant_profile(update_data: dict, current_user: dict = Depends(get
                 user_ref.update(user_safe)
                 
     return {"message": "Profile updated successfully"}
+
+@router.put("/{tenant_id}")
+def update_tenant(tenant_id: str, payload: TenantUpdate, current_user: dict = Depends(get_current_user)):
+    caller_uid = current_user.get("uid")
+    caller_doc = db.collection("users").document(caller_uid).get()
+    role = caller_doc.to_dict().get("role") if caller_doc.exists else None
+
+    if role not in ["ADMIN", "OWNER"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    doc_ref = db.collection("tenants").document(tenant_id)
+    if not doc_ref.get().exists:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    # If OWNER, verify this tenant belongs to one of their PGs
+    if role == "OWNER":
+        t_data = doc_ref.get().to_dict()
+        pg_doc = db.collection("pgs").document(t_data.get("pg_id", "")).get()
+        if not pg_doc.exists or pg_doc.to_dict().get("owner_id") != caller_uid:
+            raise HTTPException(status_code=403, detail="Tenant does not belong to your PG")
+
+    update_data = {k: v for k, v in payload.model_dump().items() if v is not None}
+    update_data["updated_at"] = datetime.utcnow()
+    doc_ref.update(update_data)
+
+    return {"message": "Tenant updated successfully"}
 
 @router.delete("/{tenant_id}")
 def delete_tenant(tenant_id: str, current_user: dict = Depends(get_current_user)):
