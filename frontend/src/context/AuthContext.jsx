@@ -31,9 +31,11 @@ export function AuthProvider({ children }) {
 
     const login = useCallback(async (email, password) => {
         // Firebase Auth login
-        const userCredential = await signInWithEmailAndPassword(auth, email, password)
-        // Profile fetch will happen in onAuthStateChanged
-        return userCredential.user
+        await signInWithEmailAndPassword(auth, email, password)
+        // Fetch profile immediately to return the full user object with role for navigation
+        const res = await userService.me()
+        setUser(res.data)
+        return res.data
     }, [])
 
     const logout = useCallback(async () => {
