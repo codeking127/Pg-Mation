@@ -121,3 +121,39 @@ def update_my_tenant_profile(update_data: dict, current_user: dict = Depends(get
                 user_ref.update(user_safe)
                 
     return {"message": "Profile updated successfully"}
+
+@router.delete("/{tenant_id}")
+def delete_tenant(tenant_id: str, current_user: dict = Depends(get_current_user)):
+    user_doc = db.collection("users").document(current_user.get("uid")).get()
+    role = user_doc.to_dict().get("role") if user_doc.exists else None
+
+    if role not in ["ADMIN", "OWNER"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+        
+    doc_ref = db.collection("tenants").document(tenant_id)
+    t_doc = doc_ref.get()
+    if not t_doc.exists:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+        
+    # If OWNER, verify the tenant actually belongs to their PG
+    if role == "OWNER":
+        t_data = t_doc.to_dict()
+        pg_doc = db.collection("pgs").document(t_data.get("pg_id", "")).get()
+        if not pg_doc.exists or pg_doc.to_dict().get("owner_id") != current_user.get("uid"):
+             raise HTTPException(status_code=403, detail="Tenant does not belong to your PG")
+             
+        # Free up the bed
+        if t_data.get("room_id") and t_data.get("bed_id"):
+             bed_ref = db.collection("pgs").document(t_data.get("pg_id")).collection("rooms").document(t_data.get("room_id")).collection("beds").document(t_data.get("bed_id"))
+             if bed_ref.get().exists:
+                 bed_ref.update({"status": "AVAILABLE", "tenant_id": None})
+             
+             # Increase available beds count
+             pg_ref = db.collection("pgs").document(t_data.get("pg_id"))
+             p_data = pg_ref.get().to_dict()
+             pg_ref.update({"available_beds": p_data.get("available_beds", 0) + 1})
+
+    # Optional: Delete auth user using firebase admin sdk if we fully manage them
+    
+    doc_ref.delete()
+    return {"message": "Tenant deleted successfully"}

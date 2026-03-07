@@ -90,3 +90,41 @@ def get_available_beds(pg_id: str):
             beds.append(b_data)
             
     return {"beds": beds}
+
+@router.delete("/{room_id}")
+def delete_room(room_id: str, current_user: dict = Depends(get_current_user)):
+    user_doc = db.collection("users").document(current_user.get("uid")).get()
+    
+    # Needs a cross-PG search since room_id implies finding the right PG first
+    # Or just use the collection group feature if index is built, but manual finding is safer without indexes
+    deleted = False
+    for pg_doc in db.collection("pgs").stream():
+        # verify auth inside loop
+        if pg_doc.to_dict().get("owner_id") != current_user.get("uid") and user_doc.to_dict().get("role") != "ADMIN":
+            continue
+            
+        room_ref = pg_doc.reference.collection("rooms").document(room_id)
+        if room_ref.get().exists:
+            room_data = room_ref.get().to_dict()
+            total = room_data.get("total_beds", 0)
+            
+            # Recalculate PG totals
+            pg_ref = pg_doc.reference
+            p_data = pg_ref.get().to_dict()
+            pg_ref.update({
+                "total_beds": max(0, p_data.get("total_beds", 0) - total),
+                "available_beds": max(0, p_data.get("available_beds", 0) - total)
+            })
+            
+            # Delete beds subcollection
+            for bed in room_ref.collection("beds").stream():
+                bed.reference.delete()
+                
+            room_ref.delete()
+            deleted = True
+            break
+            
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Room not found or unauthorized")
+        
+    return {"message": "Room deleted successfully"}

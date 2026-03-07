@@ -9,6 +9,10 @@ from datetime import datetime
 class CompleteRegistrationRequest(BaseModel):
     role: str
 
+class UserStatusUpdate(BaseModel):
+    status: str
+
+
 router = APIRouter(prefix="/users", tags=["Users"])
 
 @router.post("", response_model=UserResponse)
@@ -106,3 +110,39 @@ def complete_registration(req: CompleteRegistrationRequest, current_user: dict =
         return user_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to complete registration: {str(e)}")
+
+@router.delete("/{user_id}")
+def delete_user(user_id: str, current_user: dict = Depends(get_current_user)):
+    admin_doc = db.collection("users").document(current_user.get("uid")).get()
+    if not admin_doc.exists or admin_doc.to_dict().get("role") != "ADMIN":
+        raise HTTPException(status_code=403, detail="Not authorized")
+        
+    user_ref = db.collection("users").document(user_id)
+    if not user_ref.get().exists:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    user_ref.delete()
+    
+    # Also attempt to delete tenant profile if it exists
+    tenant_ref = db.collection("tenants").document(user_id)
+    if tenant_ref.get().exists:
+        tenant_ref.delete()
+        
+    return {"message": "User deleted successfully"}
+
+@router.put("/{user_id}/status")
+def update_user_status(user_id: str, payload: UserStatusUpdate, current_user: dict = Depends(get_current_user)):
+    admin_doc = db.collection("users").document(current_user.get("uid")).get()
+    if not admin_doc.exists or admin_doc.to_dict().get("role") != "ADMIN":
+        raise HTTPException(status_code=403, detail="Not authorized")
+        
+    user_ref = db.collection("users").document(user_id)
+    if not user_ref.get().exists:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    user_ref.update({
+        "status": payload.status,
+        "updated_at": datetime.utcnow()
+    })
+    
+    return {"message": "User status updated"}
