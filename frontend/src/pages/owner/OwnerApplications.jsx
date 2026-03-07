@@ -41,10 +41,15 @@ export default function OwnerApplications() {
         setSubmitting(true)
         setError('')
         try {
-            const payload = { action }
+            const payload = { status: action }
             if (action === 'APPROVED') {
                 payload.bed_id = form.bed_id
-                payload.rent_amount = Number(form.rent_amount)
+
+                // Find the selected bed to extract its room_id
+                const selectedBedObj = availBeds.find(b => b.id === form.bed_id)
+                if (selectedBedObj) {
+                    payload.room_id = selectedBedObj.room_id
+                }
             }
             await applicationService.review(reviewing.id, payload)
             setReviewing(null)

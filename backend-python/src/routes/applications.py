@@ -97,6 +97,9 @@ def update_application_status(id: str, review: ApplicationReview, current_user: 
         if room_doc.exists:
              update_data["room_number"] = room_doc.to_dict().get("room_number")
              
+        if review.rent_amount:
+             update_data["rent_amount"] = review.rent_amount
+             
         # 4. Update tenant profile with active PG connection
         tenant_profile_ref = db.collection("tenants").document(tenant_id)
         if tenant_profile_ref.get().exists:

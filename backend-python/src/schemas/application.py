@@ -13,6 +13,7 @@ class ApplicationReview(BaseModel):
     status: str
     room_id: Optional[str] = None
     bed_id: Optional[str] = None
+    rent_amount: Optional[float] = None
 
 class ApplicationResponse(ApplicationBase):
     id: str
